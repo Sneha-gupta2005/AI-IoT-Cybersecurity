@@ -1,4 +1,4 @@
-from ui import apply_theme
+from ui import apply_theme, hero
 apply_theme()
 
 import streamlit as st
@@ -10,20 +10,9 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 load_dotenv()
-
-st.set_page_config(
-    page_title="Device Analysis",
-    page_icon="📱",
-    layout="wide"
-)
-
-
-# =========================================================
-# DATABASE CONNECTION
-# =========================================================
+st.set_page_config(page_title="Device Analysis", page_icon="📱", layout="wide")
 
 def get_connection():
-
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "localhost"),
         port=os.getenv("POSTGRES_PORT", "5432"),
@@ -32,603 +21,147 @@ def get_connection():
         password=os.getenv("POSTGRES_PASSWORD")
     )
 
-
-# =========================================================
-# LOAD LIVE DATA
-# =========================================================
-
 @st.cache_data(ttl=3)
 def load_data():
-
     conn = get_connection()
-
-    query = """
-    SELECT
-        id,
-        device_id,
-        timestamp,
-        ai_anomaly_status,
-        anomaly_score,
-        attack_status,
-        attack_type,
-        severity,
-        network_traffic,
-        packet_rate,
-        latency,
-        cpu_usage,
-        memory_usage,
-        detection_reason
-    FROM cyber_attack_results
-    ORDER BY timestamp DESC
-    LIMIT 5000
-    """
-
-    df = pd.read_sql(query, conn)
-
+    df = pd.read_sql("""
+        SELECT id, device_id, timestamp, ai_anomaly_status, anomaly_score,
+               attack_status, attack_type, severity, network_traffic, packet_rate,
+               latency, cpu_usage, memory_usage, detection_reason
+        FROM cyber_attack_results
+        ORDER BY timestamp DESC LIMIT 5000
+    """, conn)
     conn.close()
-
-    df["timestamp"] = pd.to_datetime(
-        df["timestamp"],
-        errors="coerce"
-    )
-
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     return df
 
+hero("Device Analysis", "Device-level security posture, live telemetry and behavioural trends.", True)
 
-# =========================================================
-# PAGE HEADER
-# =========================================================
-
-st.title("📱 Device Analysis")
-
-st.caption(
-    "Device-wise security, anomaly and network activity analysis"
-)
-
-st.divider()
-
-
-# =========================================================
-# DATABASE CHECK
-# =========================================================
+with st.sidebar:
+    st.markdown("### 📱 Device Controls")
+    auto = st.checkbox("🔄 Auto refresh", value=True)
+    selected = st.selectbox("Device", ["All Devices", "SE-001", "SE-002", "SE-003"])
 
 try:
-
     df = load_data()
-
 except Exception as e:
-
     st.error("Database connection failed.")
-
     st.code(str(e))
-
     st.stop()
-
 
 if df.empty:
-
     st.warning("No device data available.")
-
     st.stop()
 
+attack_mask = df["attack_status"].astype(str).str.upper().isin(["SUSPICIOUS", "ATTACK", "MALICIOUS"])
+anomaly_mask = df["ai_anomaly_status"].astype(str).str.upper().eq("ANOMALY")
 
-# =========================================================
-# DEVICE SUMMARY
-# =========================================================
+if selected == "All Devices":
+    summary = df.groupby("device_id").agg(
+        events=("id", "count"),
+        anomalies=("ai_anomaly_status", lambda x: (x.astype(str).str.upper() == "ANOMALY").sum()),
+        attacks=("attack_status", lambda x: x.astype(str).str.upper().isin(["SUSPICIOUS", "ATTACK", "MALICIOUS"]).sum()),
+        high=("severity", lambda x: (x.astype(str).str.upper() == "HIGH").sum()),
+        last_seen=("timestamp", "max")
+    ).reset_index()
 
-device_summary = (
-    df.groupby("device_id")
-    .agg(
-        total_events=("id", "count"),
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("📱 Devices", df["device_id"].nunique())
+    c2.metric("📡 Events", f"{len(df):,}")
+    c3.metric("🚨 Devices with Attacks", int((summary["attacks"] > 0).sum()))
+    c4.metric("🧠 Devices with Anomalies", int((summary["anomalies"] > 0).sum()))
 
-        anomaly_count=(
-            "ai_anomaly_status",
-            lambda x: (x == "ANOMALY").sum()
-        ),
+    st.subheader("🛡️ Device Security Overview")
+    fig = px.bar(summary, x="device_id", y=["events", "anomalies", "attacks"],
+                 barmode="group", text_auto=True, template="plotly_dark")
+    fig.update_layout(height=380, margin=dict(l=10, r=10, t=30, b=10), xaxis_title="", yaxis_title="Events")
+    st.plotly_chart(fig, use_container_width=True)
 
-        attack_count=(
-            "attack_status",
-            lambda x: (x == "SUSPICIOUS").sum()
-        ),
+    st.subheader("🌐 Average Device Telemetry")
+    avg = df.groupby("device_id")[["network_traffic", "packet_rate", "latency", "cpu_usage", "memory_usage"]].mean().reset_index()
+    avg_long = avg.melt("device_id", var_name="metric", value_name="value")
+    fig = px.bar(avg_long, x="device_id", y="value", color="metric", barmode="group",
+                 template="plotly_dark", text_auto=".1f")
+    fig.update_layout(height=380, margin=dict(l=10, r=10, t=30, b=10))
+    st.plotly_chart(fig, use_container_width=True)
 
-        high_severity_count=(
-            "severity",
-            lambda x: (x == "HIGH").sum()
-        ),
-
-        last_seen=("timestamp", "max"),
-
-        avg_network_traffic=(
-            "network_traffic",
-            "mean"
-        ),
-
-        avg_packet_rate=(
-            "packet_rate",
-            "mean"
-        ),
-
-        avg_latency=(
-            "latency",
-            "mean"
-        ),
-
-        avg_cpu=(
-            "cpu_usage",
-            "mean"
-        ),
-
-        avg_memory=(
-            "memory_usage",
-            "mean"
-        )
-    )
-    .reset_index()
-)
-
-
-# =========================================================
-# DEVICE SELECTOR
-# =========================================================
-
-st.subheader("🔍 Select Device")
-
-selected_device = st.selectbox(
-    "Choose a device",
-    ["All Devices"] +
-    sorted(
-        df["device_id"]
-        .dropna()
-        .unique()
-        .tolist()
-    )
-)
-
-
-# =========================================================
-# ALL DEVICES VIEW
-# =========================================================
-
-if selected_device == "All Devices":
-
-    st.subheader("📊 Overall Device Summary")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric(
-        "Total Devices",
-        df["device_id"].nunique()
-    )
-
-    col2.metric(
-        "Total Events",
-        len(df)
-    )
-
-    col3.metric(
-        "Devices with Attacks",
-        device_summary[
-            device_summary["attack_count"] > 0
-        ]["device_id"].nunique()
-    )
-
-    col4.metric(
-        "Devices with Anomalies",
-        device_summary[
-            device_summary["anomaly_count"] > 0
-        ]["device_id"].nunique()
-    )
-
-    st.divider()
-
-
-    # -----------------------------------------------------
-    # ATTACKS BY DEVICE
-    # -----------------------------------------------------
-
-    st.subheader("🚨 Attacks by Device")
-
-    fig_attacks = px.bar(
-        device_summary,
-        x="device_id",
-        y="attack_count",
-        title="Cyber Attacks Detected per Device",
-        labels={
-            "device_id": "Device",
-            "attack_count": "Attack Events"
-        }
-    )
-
-    st.plotly_chart(
-        fig_attacks,
-        use_container_width=True
-    )
-
-
-    # -----------------------------------------------------
-    # ANOMALIES BY DEVICE
-    # -----------------------------------------------------
-
-    st.subheader("⚠️ Anomalies by Device")
-
-    fig_anomaly = px.bar(
-        device_summary,
-        x="device_id",
-        y="anomaly_count",
-        title="AI Anomalies Detected per Device",
-        labels={
-            "device_id": "Device",
-            "anomaly_count": "Anomaly Events"
-        }
-    )
-
-    st.plotly_chart(
-        fig_anomaly,
-        use_container_width=True
-    )
-
-
-    # -----------------------------------------------------
-    # NETWORK ACTIVITY
-    # -----------------------------------------------------
-
-    st.subheader("🌐 Average Network Activity")
-
-    network_df = device_summary[
-        [
-            "device_id",
-            "avg_network_traffic",
-            "avg_packet_rate",
-            "avg_latency"
-        ]
-    ].copy()
-
-    network_long = network_df.melt(
-        id_vars="device_id",
-        var_name="metric",
-        value_name="value"
-    )
-
-    fig_network = px.bar(
-        network_long,
-        x="device_id",
-        y="value",
-        color="metric",
-        barmode="group",
-        title="Average Network Metrics by Device"
-    )
-
-    st.plotly_chart(
-        fig_network,
-        use_container_width=True
-    )
-
-
-    # -----------------------------------------------------
-    # DEVICE TABLE
-    # -----------------------------------------------------
-
-    st.subheader("📋 Device Security Summary")
-
-    display_df = device_summary.copy()
-
-    display_df["avg_network_traffic"] = (
-        display_df["avg_network_traffic"]
-        .round(2)
-    )
-
-    display_df["avg_packet_rate"] = (
-        display_df["avg_packet_rate"]
-        .round(2)
-    )
-
-    display_df["avg_latency"] = (
-        display_df["avg_latency"]
-        .round(2)
-    )
-
-    display_df["avg_cpu"] = (
-        display_df["avg_cpu"]
-        .round(2)
-    )
-
-    display_df["avg_memory"] = (
-        display_df["avg_memory"]
-        .round(2)
-    )
-
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-# =========================================================
-# SINGLE DEVICE VIEW
-# =========================================================
-
+    st.subheader("📋 Device Security Table")
+    st.dataframe(summary.sort_values(["attacks", "anomalies"], ascending=False),
+                 use_container_width=True, hide_index=True)
 else:
+    device_data = df[df["device_id"] == selected].copy()
+    if device_data.empty:
+        st.warning("No data for this device.")
+        st.stop()
 
-    device_data = df[
-        df["device_id"] == selected_device
-    ].copy()
+    device_data = device_data.sort_values("timestamp")
+    attacks = device_data["attack_status"].astype(str).str.upper().isin(["SUSPICIOUS", "ATTACK", "MALICIOUS"])
+    anomalies = device_data["ai_anomaly_status"].astype(str).str.upper().eq("ANOMALY")
+    latest = device_data.iloc[-1]
 
-    device_info = device_summary[
-        device_summary["device_id"] == selected_device
-    ].iloc[0]
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Events", f"{len(device_data):,}")
+    c2.metric("🧠 AI Anomalies", int(anomalies.sum()))
+    c3.metric("🚨 Attacks", int(attacks.sum()))
+    c4.metric("CPU", f"{float(latest['cpu_usage']):.1f}%")
+    c5.metric("Memory", f"{float(latest['memory_usage']):.1f}%")
 
-    st.subheader(
-        f"📱 Device: {selected_device}"
-    )
+    st.success(f"🟢 {selected} LIVE • Last seen {latest['timestamp'].strftime('%H:%M:%S')}")
 
+    st.subheader("📡 Live Telemetry")
+    left, right = st.columns(2)
+    with left:
+        fig = px.line(device_data, x="timestamp", y=["network_traffic", "packet_rate"],
+                      template="plotly_dark")
+        fig.update_layout(height=330, margin=dict(l=10, r=10, t=30, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+    with right:
+        fig = px.line(device_data, x="timestamp", y=["cpu_usage", "memory_usage"],
+                      template="plotly_dark")
+        fig.update_layout(height=330, margin=dict(l=10, r=10, t=30, b=10), yaxis_title="%")
+        st.plotly_chart(fig, use_container_width=True)
 
-    # -----------------------------------------------------
-    # DEVICE KPIs
-    # -----------------------------------------------------
+    st.subheader("🧠 AI Security Signal")
+    fig = px.scatter(device_data, x="timestamp", y="anomaly_score",
+                     color="ai_anomaly_status",
+                     hover_data=["attack_type", "severity", "attack_status"],
+                     template="plotly_dark")
+    fig.update_layout(height=330, margin=dict(l=10, r=10, t=30, b=10))
+    st.plotly_chart(fig, use_container_width=True)
 
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric(
-        "Total Events",
-        int(device_info["total_events"])
-    )
-
-    col2.metric(
-        "AI Anomalies",
-        int(device_info["anomaly_count"])
-    )
-
-    col3.metric(
-        "Cyber Attacks",
-        int(device_info["attack_count"])
-    )
-
-    col4.metric(
-        "High Severity",
-        int(device_info["high_severity_count"])
-    )
-
-    st.divider()
-
-
-    # -----------------------------------------------------
-    # CURRENT TELEMETRY
-    # -----------------------------------------------------
-
-    latest = (
-        device_data
-        .sort_values("timestamp")
-        .iloc[-1]
-    )
-
-    st.subheader("📡 Latest Telemetry")
-
-    col1, col2, col3, col4, col5 = st.columns(5)
-
-    col1.metric(
-        "Network Traffic",
-        f"{latest['network_traffic']:.2f}"
-    )
-
-    col2.metric(
-        "Packet Rate",
-        f"{latest['packet_rate']:.2f}"
-    )
-
-    col3.metric(
-        "Latency",
-        f"{latest['latency']:.2f}"
-    )
-
-    col4.metric(
-        "CPU Usage",
-        f"{latest['cpu_usage']:.2f}%"
-    )
-
-    col5.metric(
-        "Memory Usage",
-        f"{latest['memory_usage']:.2f}%"
-    )
-
-    st.divider()
-
-
-    # -----------------------------------------------------
-    # SECURITY TIMELINE
-    # -----------------------------------------------------
-
-    st.subheader("📈 Security Activity")
-
-    timeline = (
-        device_data
-        .set_index("timestamp")
-        .resample("1min")
-        .agg(
-            attacks=(
-                "attack_status",
-                lambda x: (x == "SUSPICIOUS").sum()
-            ),
-
-            anomalies=(
-                "ai_anomaly_status",
-                lambda x: (x == "ANOMALY").sum()
-            )
-        )
-        .reset_index()
-    )
-
-    fig_timeline = px.line(
-        timeline,
-        x="timestamp",
-        y=["attacks", "anomalies"],
-        title="Attacks and Anomalies Over Time",
-        labels={
-            "value": "Events",
-            "timestamp": "Time"
-        }
-    )
-
-    st.plotly_chart(
-        fig_timeline,
-        use_container_width=True
-    )
-
-
-    # -----------------------------------------------------
-    # NETWORK METRICS
-    # -----------------------------------------------------
-
-    st.subheader("🌐 Network Metrics")
-
-    network_metrics = device_data[
-        [
-            "timestamp",
-            "network_traffic",
-            "packet_rate",
-            "latency"
-        ]
-    ].sort_values("timestamp")
-
-    fig_metrics = px.line(
-        network_metrics,
-        x="timestamp",
-        y=[
-            "network_traffic",
-            "packet_rate",
-            "latency"
-        ],
-        title="Network Behaviour",
-        labels={
-            "value": "Metric Value",
-            "timestamp": "Time"
-        }
-    )
-
-    st.plotly_chart(
-        fig_metrics,
-        use_container_width=True
-    )
-
-
-    # -----------------------------------------------------
-    # CPU AND MEMORY
-    # -----------------------------------------------------
-
-    st.subheader("💻 Resource Utilization")
-
-    resource_data = device_data[
-        [
-            "timestamp",
-            "cpu_usage",
-            "memory_usage"
-        ]
-    ].sort_values("timestamp")
-
-    fig_resource = px.line(
-        resource_data,
-        x="timestamp",
-        y=[
-            "cpu_usage",
-            "memory_usage"
-        ],
-        title="CPU and Memory Usage",
-        labels={
-            "value": "Usage (%)",
-            "timestamp": "Time"
-        }
-    )
-
-    st.plotly_chart(
-        fig_resource,
-        use_container_width=True
-    )
-
-
-    # -----------------------------------------------------
-    # ATTACK TYPES
-    # -----------------------------------------------------
-
-    st.subheader("🚨 Attack Types")
-
-    attack_data = device_data[
-        device_data["attack_status"] == "SUSPICIOUS"
-    ]
-
-    if not attack_data.empty:
-
-        attack_counts = (
-            attack_data["attack_type"]
-            .value_counts()
-            .reset_index()
-        )
-
-        attack_counts.columns = [
-            "attack_type",
-            "count"
-        ]
-
-        fig_attack_types = px.pie(
-            attack_counts,
-            names="attack_type",
-            values="count",
-            title=f"Attack Types for {selected_device}"
-        )
-
-        st.plotly_chart(
-            fig_attack_types,
-            use_container_width=True
-        )
-
-    else:
-
-        st.success(
-            "No cyber attacks detected for this device."
-        )
-
-
-    # -----------------------------------------------------
-    # RECENT DEVICE EVENTS
-    # -----------------------------------------------------
+    left, right = st.columns(2)
+    with left:
+        st.subheader("🚨 Attack Types")
+        attack_data = device_data[attacks]
+        if attack_data.empty:
+            st.info("No suspicious attacks for this device.")
+        else:
+            counts = attack_data["attack_type"].fillna("Unknown").value_counts().reset_index()
+            counts.columns = ["attack_type", "count"]
+            fig = px.pie(counts, names="attack_type", values="count", hole=.5,
+                         template="plotly_dark")
+            fig.update_layout(height=330, margin=dict(l=10, r=10, t=30, b=10))
+            st.plotly_chart(fig, use_container_width=True)
+    with right:
+        st.subheader("🛡️ Severity")
+        severity = device_data["severity"].fillna("Unknown").value_counts().reset_index()
+        severity.columns = ["severity", "count"]
+        fig = px.pie(severity, names="severity", values="count", hole=.5,
+                     template="plotly_dark")
+        fig.update_layout(height=330, margin=dict(l=10, r=10, t=30, b=10))
+        st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("📝 Recent Device Events")
-
     st.dataframe(
-        device_data[
-            [
-                "timestamp",
-                "ai_anomaly_status",
-                "attack_status",
-                "attack_type",
-                "severity",
-                "network_traffic",
-                "packet_rate",
-                "latency",
-                "detection_reason"
-            ]
-        ]
-        .sort_values(
-            "timestamp",
-            ascending=False
-        )
-        .head(50),
-        use_container_width=True,
-        hide_index=True
+        device_data.sort_values("timestamp", ascending=False)[
+            ["timestamp", "ai_anomaly_status", "attack_status", "attack_type",
+             "severity", "network_traffic", "packet_rate", "latency", "detection_reason"]
+        ].head(100),
+        use_container_width=True, hide_index=True
     )
 
-
-# =========================================================
-# AUTO REFRESH
-# =========================================================
-
-st.divider()
-
-st.caption(
-    "🔄 Live data refreshes automatically every 5 seconds."
-)
-
-time.sleep(5)
-
-st.cache_data.clear()
-
-st.rerun()
+st.caption("🔄 Live data refreshes every 5 seconds when Auto refresh is enabled.")
+if auto:
+    time.sleep(5)
+    st.cache_data.clear()
+    st.rerun()
