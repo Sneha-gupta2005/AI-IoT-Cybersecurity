@@ -346,7 +346,7 @@ HIGH
 
 
 
-\## Project Structure
+**\## Project Structure**
 
 
 
@@ -548,7 +548,7 @@ Configure the environment variables using `.env.example`.
 
 
 
-\## Running the Real-Time IoT Pipeline
+**\## Running the Real-Time IoT Pipeline**
 
 
 
@@ -646,7 +646,7 @@ The API provides a `/predict` endpoint for network-flow attack prediction.
 
 
 
-\## Grafana Monitoring
+\## **Grafana Monitoring**
 
 
 
@@ -716,131 +716,69 @@ Production deployment should use platform-managed environment variables instead 
 
 
 
-\## Deployment Plan
-
-
+## Deployment Plan
 
 The project is designed to be deployed as separate services:
 
-
-
 ```text
-
-&#x20;                   Cloud Deployment
-
-&#x20;                          |
-
-&#x20;         +----------------+----------------+
-
-&#x20;         |                                 |
-
-&#x20;    Streamlit App                     FastAPI API
-
-&#x20;         |                                 |
-
-&#x20;         +----------------+----------------+
-
-&#x20;                          |
-
-&#x20;                   Cloud PostgreSQL
-
-&#x20;                          |
-
-&#x20;                   MQTT / HiveMQ Cloud
-
-&#x20;                          |
-
-&#x20;                 IoT Simulation Worker
-
+                   Cloud Deployment
+                          |
+         +----------------+----------------+
+         |                                 |
+    Streamlit App                     FastAPI API
+         |                                 |
+         +----------------+----------------+
+                          |
+                   Cloud PostgreSQL
+                          |
+                   MQTT / HiveMQ Cloud
+                          |
+                 IoT Simulation Worker
 ```
-
-
 
 The deployment configuration can be adapted for cloud platforms supporting Python web applications, PostgreSQL, and background workers.
 
-
-
-\## Important Project Scope
-
-
+## Important Project Scope
 
 This project combines:
 
-
-
-\- Public benchmark data for machine-learning research
-
-\- Software-based virtual IoT devices for real-time telemetry generation
-
-\- AI-based anomaly detection
-
-\- Rule-based cybersecurity detection
-
-\- Network-flow attack prediction
-
-\- Real-time database storage
-
-\- Interactive monitoring dashboards
-
-
+- Public benchmark data for machine-learning research
+- Software-based virtual IoT devices for real-time telemetry generation
+- AI-based anomaly detection
+- Rule-based cybersecurity detection
+- Network-flow attack prediction
+- Real-time database storage
+- Interactive monitoring dashboards
 
 The virtual IoT devices are software simulations and therefore represent a real-time IoT simulation rather than physical sensor deployment.
 
-
-
-\## Future Improvements
-
-
+## Future Improvements
 
 Possible future improvements include:
 
+- Physical IoT sensor integration
+- Improved online anomaly detection
+- Automated model retraining
+- Explainable AI
+- Role-based dashboard authentication
+- Containerized deployment
+- CI/CD using GitHub Actions
+- Centralized logging
+- Alert notifications
+- Additional IoT cybersecurity datasets
+- Leakage-safe benchmark evaluation
+- Cloud-based distributed deployment
 
+## Author
 
-\- Physical IoT sensor integration
+**Sneha Gupta**
 
-\- Improved online anomaly detection
+B.Tech Computer Science and Engineering
 
-\- Automated model retraining
-
-\- Explainable AI
-
-\- Role-based dashboard authentication
-
-\- Containerized deployment
-
-\- CI/CD using GitHub Actions
-
-\- Centralized logging
-
-\- Alert notifications
-
-\- Additional IoT cybersecurity datasets
-
-\- Leakage-safe benchmark evaluation
-
-\- Cloud-based distributed deployment
-
-
-
-\## Author
-
-
-
-\*\*Sneha Gupta\*\*
-
-
-
-B.Tech Computer Science and Engineering  
-
-ABES Engineering College  
+ABES Engineering College
 
 AKTU
 
-
-
-\## License
-
-
+## License
 
 This project is currently intended for academic, research, and demonstration purposes.
-
