@@ -1,5 +1,4 @@
 from ui import apply_theme, hero
-apply_theme()
 
 import streamlit as st
 import pandas as pd
@@ -104,4 +103,6 @@ st.warning(
     "For final research claims, validate generalization with leakage checks, "
     "a training-only preprocessing pipeline, and preferably an independent or time-based validation split."
 )
+
+apply_theme()
 st.caption("MITM has fewer samples than most other attack classes, which affects its class-wise performance.")
