@@ -1,0 +1,936 @@
+\# AI-IoT Cybersecurity System
+
+
+
+An AI-based IoT cybersecurity system for real-time telemetry monitoring, anomaly detection, cyber attack detection, and network-flow attack prediction.
+
+
+
+\## Overview
+
+
+
+This project combines machine learning, IoT telemetry, MQTT communication, cybersecurity rules, REST APIs, PostgreSQL, Streamlit, and Grafana into a unified cybersecurity monitoring system.
+
+
+
+The system has two complementary pipelines:
+
+
+
+1\. \*\*Real-time IoT Monitoring Pipeline\*\*
+
+&#x20;  - Virtual IoT devices continuously generate telemetry.
+
+&#x20;  - Telemetry is transmitted through MQTT using HiveMQ Cloud.
+
+&#x20;  - An AI anomaly detector analyzes incoming telemetry.
+
+&#x20;  - Rule-based cybersecurity detection identifies suspicious network behavior.
+
+&#x20;  - Results are stored in PostgreSQL.
+
+&#x20;  - Streamlit and Grafana display the results in real time.
+
+
+
+2\. \*\*TON-IoT Machine Learning Pipeline\*\*
+
+&#x20;  - The TON-IoT benchmark dataset is used for model training and evaluation.
+
+&#x20;  - XGBoost models are used for binary attack detection and multiclass attack-type classification.
+
+&#x20;  - FastAPI provides an inference API.
+
+&#x20;  - Streamlit provides an interactive network-flow prediction interface.
+
+
+
+\## System Architecture
+
+
+
+```text
+
+&#x20;                   AI-IoT CYBERSECURITY SYSTEM
+
+&#x20;                             |
+
+&#x20;            +----------------+----------------+
+
+&#x20;            |                                 |
+
+&#x20;     TON-IoT Benchmark                 Virtual IoT Devices
+
+&#x20;         Dataset                              |
+
+&#x20;            |                                MQTT
+
+&#x20;     Preprocessing                           |
+
+&#x20;            |                          HiveMQ Cloud
+
+&#x20;      XGBoost Models                          |
+
+&#x20;            |                         AI Anomaly Detector
+
+&#x20;         FastAPI                              |
+
+&#x20;            |                    Cyber Attack Rule Engine
+
+&#x20;      Prediction UI                           |
+
+&#x20;            |                                 |
+
+&#x20;            +----------------+----------------+
+
+&#x20;                             |
+
+&#x20;                        PostgreSQL
+
+&#x20;                             |
+
+&#x20;                   +---------+---------+
+
+&#x20;                   |                   |
+
+&#x20;               Streamlit            Grafana
+
+&#x20;               Dashboard           Dashboard
+
+```
+
+
+
+\## Real-Time IoT Pipeline
+
+
+
+```text
+
+Virtual Devices
+
+&#x20;     |
+
+&#x20;     v
+
+MQTT Publisher
+
+&#x20;     |
+
+&#x20;     v
+
+HiveMQ Cloud
+
+&#x20;     |
+
+&#x20;     v
+
+AI Detector
+
+&#x20;     |
+
+&#x20;     +----> AI Anomaly Detection
+
+&#x20;     |
+
+&#x20;     +----> Cyber Attack Detection
+
+&#x20;     |
+
+&#x20;     v
+
+PostgreSQL
+
+&#x20;     |
+
+&#x20;     +----> Streamlit
+
+&#x20;     |
+
+&#x20;     +----> Grafana
+
+```
+
+
+
+The real-time demonstration uses \*\*software-based virtual IoT devices\*\*. It does not require physical sensor hardware.
+
+
+
+\## Machine Learning Pipeline
+
+
+
+```text
+
+TON-IoT Dataset
+
+&#x20;     |
+
+&#x20;     v
+
+Data Preprocessing
+
+&#x20;     |
+
+&#x20;     v
+
+Feature Engineering
+
+&#x20;     |
+
+&#x20;     v
+
+XGBoost Training
+
+&#x20;     |
+
+&#x20;     +----> Binary Attack Detection
+
+&#x20;     |
+
+&#x20;     +----> Multiclass Attack Classification
+
+&#x20;     |
+
+&#x20;     v
+
+FastAPI
+
+&#x20;     |
+
+&#x20;     v
+
+Streamlit Prediction Interface
+
+```
+
+
+
+\## Dataset
+
+
+
+The project uses the \*\*TON-IoT network dataset\*\*, a public benchmark dataset for IoT and network intrusion detection research.
+
+
+
+The dataset is not included in this GitHub repository because of repository size and data-management considerations.
+
+
+
+Dataset source:
+
+
+
+https://research.unsw.edu.au/projects/toniot-datasets
+
+
+
+The local project expects the dataset under:
+
+
+
+```text
+
+datasets/
+
+├── raw/
+
+└── processed/
+
+```
+
+
+
+\## Machine Learning Models
+
+
+
+\### Binary Attack Detection
+
+
+
+The binary XGBoost model classifies network traffic into:
+
+
+
+\- Normal
+
+\- Attack
+
+
+
+Evaluation results obtained during development:
+
+
+
+| Metric | Result |
+
+|---|---:|
+
+| Accuracy | 99.86% |
+
+| Precision | 99.93% |
+
+| Recall | 99.89% |
+
+| F1 Score | 99.91% |
+
+| ROC-AUC | 1.00 |
+
+| PR-AUC | 1.00 |
+
+
+
+\### Multiclass Attack Classification
+
+
+
+The multiclass XGBoost model identifies different attack categories.
+
+
+
+Evaluation results obtained during development:
+
+
+
+| Metric | Result |
+
+|---|---:|
+
+| Accuracy | 98.98% |
+
+| Precision | 98.99% |
+
+| Recall | 98.98% |
+
+| F1 Score | 98.98% |
+
+
+
+These results are from the current development pipeline. For publication-quality evaluation, preprocessing should be fitted strictly on the training split to avoid data leakage and provide a stronger estimate of generalization.
+
+
+
+\## Real-Time AI Anomaly Detection
+
+
+
+The real-time pipeline uses an anomaly-detection model to analyze telemetry generated by virtual IoT devices.
+
+
+
+Example telemetry features include:
+
+
+
+\- Temperature
+
+\- Voltage
+
+\- Current
+
+\- Power
+
+\- CPU usage
+
+\- Memory usage
+
+\- Network traffic
+
+\- Packet rate
+
+\- Latency
+
+
+
+The system produces statuses such as:
+
+
+
+```text
+
+NORMAL
+
+ANOMALY
+
+```
+
+
+
+\## Cyber Attack Detection
+
+
+
+The cybersecurity detection layer evaluates combinations of telemetry and AI anomaly information.
+
+
+
+Example detection categories include:
+
+
+
+\- NETWORK\_FLOOD
+
+\- PACKET\_FLOOD
+
+\- RESOURCE\_EXHAUSTION
+
+\- NETWORK\_ANOMALY
+
+\- LATENCY\_ATTACK
+
+\- DEVICE\_ANOMALY
+
+
+
+Severity levels include:
+
+
+
+```text
+
+LOW
+
+MEDIUM
+
+HIGH
+
+```
+
+
+
+\## Technology Stack
+
+
+
+| Component | Technology |
+
+|---|---|
+
+| Programming | Python |
+
+| Machine Learning | XGBoost, Scikit-learn |
+
+| Dataset | TON-IoT |
+
+| IoT Communication | MQTT |
+
+| MQTT Broker | HiveMQ Cloud |
+
+| Backend API | FastAPI |
+
+| Database | PostgreSQL |
+
+| Dashboard | Streamlit |
+
+| Monitoring | Grafana |
+
+| Data Processing | Pandas, NumPy |
+
+| Model Serialization | Joblib |
+
+| Version Control | Git / GitHub |
+
+
+
+\## Project Structure
+
+
+
+```text
+
+AI-IoT-Cybersecurity/
+
+│
+
+├── api/
+
+│   └── main.py
+
+│
+
+├── datasets/
+
+│   ├── raw/
+
+│   └── processed/
+
+│
+
+├── ml/
+
+│   ├── models/
+
+│   ├── preprocessing.py
+
+│   ├── feature\_builder.py
+
+│   ├── train\_attack.py
+
+│   ├── train\_attack\_type.py
+
+│   ├── train\_anomaly.py
+
+│   └── evaluate\_models.py
+
+│
+
+├── simulator/
+
+│   ├── ai\_detector.py
+
+│   ├── config.py
+
+│   ├── device\_simulator.py
+
+│   ├── mqtt\_publisher.py
+
+│   ├── network\_traffic\_simulator.py
+
+│   └── train\_model.py
+
+│
+
+├── streamlit/
+
+│   ├── app.py
+
+│   └── pages/
+
+│       ├── Overview.py
+
+│       ├── Live\_Monitor.py
+
+│       ├── Attack\_Analysis.py
+
+│       ├── Device\_Analysis.py
+
+│       ├── ML\_Performance.py
+
+│       ├── Dataset\_Explorer.py
+
+│       ├── Prediction.py
+
+│       └── Prediction\_History.py
+
+│
+
+├── reports/
+
+│   └── ml\_evaluation\_report.txt
+
+│
+
+├── .env.example
+
+├── .gitignore
+
+├── requirements.txt
+
+└── README.md
+
+```
+
+
+
+\## Environment Variables
+
+
+
+Create a `.env` file locally using `.env.example`.
+
+
+
+Example:
+
+
+
+```env
+
+DB\_HOST=localhost
+
+DB\_PORT=5432
+
+DB\_NAME=iot\_cybersecurity
+
+DB\_USER=postgres
+
+DB\_PASSWORD=your\_password
+
+
+
+MQTT\_BROKER=your\_hivemq\_host
+
+MQTT\_PORT=8883
+
+MQTT\_USERNAME=your\_username
+
+MQTT\_PASSWORD=your\_password
+
+MQTT\_TOPIC=iot/devices/telemetry
+
+```
+
+
+
+Never commit `.env` or real credentials to GitHub.
+
+
+
+\## Local Setup
+
+
+
+Clone the repository:
+
+
+
+```bash
+
+git clone https://github.com/Sneha-gupta2005/AI-IoT-Cybersecurity.git
+
+cd AI-IoT-Cybersecurity
+
+```
+
+
+
+Create a virtual environment:
+
+
+
+```bash
+
+python -m venv venv
+
+```
+
+
+
+Activate it on Windows:
+
+
+
+```powershell
+
+.\\venv\\Scripts\\Activate.ps1
+
+```
+
+
+
+Install dependencies:
+
+
+
+```bash
+
+pip install -r requirements.txt
+
+```
+
+
+
+Configure the environment variables using `.env.example`.
+
+
+
+\## Running the Real-Time IoT Pipeline
+
+
+
+Start the MQTT publisher:
+
+
+
+```powershell
+
+python .\\simulator\\mqtt\_publisher.py
+
+```
+
+
+
+Start the AI and cybersecurity detector in another terminal:
+
+
+
+```powershell
+
+python .\\simulator\\ai\_detector.py
+
+```
+
+
+
+Start Streamlit in another terminal:
+
+
+
+```powershell
+
+python -m streamlit run .\\streamlit\\app.py
+
+```
+
+
+
+The Streamlit dashboard can then be used to monitor:
+
+
+
+\- Live telemetry
+
+\- Device activity
+
+\- AI anomaly status
+
+\- Cyber attack status
+
+\- Attack type
+
+\- Severity
+
+\- Network traffic
+
+\- Packet rate
+
+\- Latency
+
+\- CPU and memory usage
+
+
+
+\## Running the FastAPI Service
+
+
+
+From the project root:
+
+
+
+```powershell
+
+python -m uvicorn api.main:app --reload
+
+```
+
+
+
+Health check:
+
+
+
+```text
+
+http://127.0.0.1:8000/health
+
+```
+
+
+
+The API provides a `/predict` endpoint for network-flow attack prediction.
+
+
+
+\## Grafana Monitoring
+
+
+
+Grafana is configured with PostgreSQL as the data source.
+
+
+
+The monitoring dashboard includes:
+
+
+
+\- Live Network Traffic
+
+\- Packet Rate
+
+\- Latency
+
+\- CPU and Memory Usage
+
+\- Attack Type Distribution
+
+\- Attack Severity Distribution
+
+\- AI Anomaly Score
+
+\- Attack Status Distribution
+
+
+
+The dashboard is configured for short time-window monitoring and automatic refresh.
+
+
+
+\## Security Considerations
+
+
+
+Sensitive configuration values are excluded from version control.
+
+
+
+The following are intentionally ignored:
+
+
+
+```text
+
+.env
+
+\*.env
+
+venv/
+
+.venv/
+
+simulator/venv/
+
+datasets/raw/
+
+datasets/processed/
+
+```
+
+
+
+Production deployment should use platform-managed environment variables instead of storing credentials in source code.
+
+
+
+\## Deployment Plan
+
+
+
+The project is designed to be deployed as separate services:
+
+
+
+```text
+
+&#x20;                   Cloud Deployment
+
+&#x20;                          |
+
+&#x20;         +----------------+----------------+
+
+&#x20;         |                                 |
+
+&#x20;    Streamlit App                     FastAPI API
+
+&#x20;         |                                 |
+
+&#x20;         +----------------+----------------+
+
+&#x20;                          |
+
+&#x20;                   Cloud PostgreSQL
+
+&#x20;                          |
+
+&#x20;                   MQTT / HiveMQ Cloud
+
+&#x20;                          |
+
+&#x20;                 IoT Simulation Worker
+
+```
+
+
+
+The deployment configuration can be adapted for cloud platforms supporting Python web applications, PostgreSQL, and background workers.
+
+
+
+\## Important Project Scope
+
+
+
+This project combines:
+
+
+
+\- Public benchmark data for machine-learning research
+
+\- Software-based virtual IoT devices for real-time telemetry generation
+
+\- AI-based anomaly detection
+
+\- Rule-based cybersecurity detection
+
+\- Network-flow attack prediction
+
+\- Real-time database storage
+
+\- Interactive monitoring dashboards
+
+
+
+The virtual IoT devices are software simulations and therefore represent a real-time IoT simulation rather than physical sensor deployment.
+
+
+
+\## Future Improvements
+
+
+
+Possible future improvements include:
+
+
+
+\- Physical IoT sensor integration
+
+\- Improved online anomaly detection
+
+\- Automated model retraining
+
+\- Explainable AI
+
+\- Role-based dashboard authentication
+
+\- Containerized deployment
+
+\- CI/CD using GitHub Actions
+
+\- Centralized logging
+
+\- Alert notifications
+
+\- Additional IoT cybersecurity datasets
+
+\- Leakage-safe benchmark evaluation
+
+\- Cloud-based distributed deployment
+
+
+
+\## Author
+
+
+
+\*\*Sneha Gupta\*\*
+
+
+
+B.Tech Computer Science and Engineering  
+
+ABES Engineering College  
+
+AKTU
+
+
+
+\## License
+
+
+
+This project is currently intended for academic, research, and demonstration purposes.
+
