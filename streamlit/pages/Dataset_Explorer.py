@@ -1,5 +1,4 @@
 from ui import apply_theme, hero
-apply_theme()
 
 import streamlit as st
 import pandas as pd
@@ -7,6 +6,8 @@ import os
 import plotly.express as px
 
 st.set_page_config(page_title="Dataset Explorer", page_icon="📊", layout="wide")
+
+apply_theme()
 
 hero("Dataset Explorer", "Interactive exploration of the processed TON-IoT network cybersecurity dataset.", False)
 
