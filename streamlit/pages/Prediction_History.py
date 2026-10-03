@@ -1,5 +1,4 @@
 from ui import apply_theme, hero
-apply_theme()
 
 import streamlit as st
 import pandas as pd
@@ -16,6 +15,8 @@ st.set_page_config(
     page_icon="📜",
     layout="wide"
 )
+
+apply_theme()
 
 
 def get_connection():
