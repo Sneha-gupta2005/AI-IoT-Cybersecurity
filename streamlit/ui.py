@@ -1,5 +1,6 @@
 import streamlit as st
 
+
 def apply_theme():
     st.markdown("""
     <style>
@@ -10,7 +11,9 @@ def apply_theme():
     }
 
     .stApp {
-        background: linear-gradient(135deg, #07111f 0%, #0b1628 48%, #101827 100%);
+        background:
+            radial-gradient(circle at 85% 5%, rgba(45, 110, 170, .12), transparent 25%),
+            linear-gradient(135deg, #07111f 0%, #0b1628 48%, #101827 100%);
     }
 
     [data-testid="stHeader"] {
@@ -27,7 +30,7 @@ def apply_theme():
     }
 
     [data-testid="stSidebarNav"] {
-        padding-top: 1rem;
+        padding-top: .6rem;
     }
 
     [data-testid="stMetric"] {
@@ -48,7 +51,8 @@ def apply_theme():
         font-weight: 800;
     }
 
-    div[data-testid="stPlotlyChart"], div[data-testid="stDataFrame"] {
+    div[data-testid="stPlotlyChart"],
+    div[data-testid="stDataFrame"] {
         background: rgba(13,27,47,.72);
         border: 1px solid rgba(255,255,255,.07);
         border-radius: 18px;
@@ -58,7 +62,7 @@ def apply_theme():
 
     .block-container {
         max-width: 1500px;
-        padding-top: 2rem;
+        padding-top: 1.7rem;
         padding-bottom: 3rem;
     }
 
@@ -72,12 +76,27 @@ def apply_theme():
     }
 
     .hero-card {
-        padding: 26px 30px;
+        position: relative;
+        overflow: hidden;
+        padding: 28px 30px;
         border-radius: 22px;
         margin-bottom: 24px;
-        background: linear-gradient(135deg, rgba(22,52,82,.92), rgba(11,29,51,.92));
+        background:
+            radial-gradient(circle at 90% 20%, rgba(86, 171, 255, .18), transparent 28%),
+            linear-gradient(135deg, rgba(22,52,82,.96), rgba(11,29,51,.94));
         border: 1px solid rgba(120,190,255,.16);
         box-shadow: 0 18px 45px rgba(0,0,0,.22);
+    }
+
+    .hero-card::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        right: -70px;
+        bottom: -90px;
+        border-radius: 50%;
+        border: 1px solid rgba(120,190,255,.12);
     }
 
     .hero-title {
@@ -85,12 +104,16 @@ def apply_theme():
         font-weight: 800;
         margin: 0;
         color: #f5f8fc;
+        position: relative;
+        z-index: 1;
     }
 
     .hero-subtitle {
         margin: 8px 0 0;
         color: #a9bad0;
         font-size: 15px;
+        position: relative;
+        z-index: 1;
     }
 
     .live-pill {
@@ -103,6 +126,8 @@ def apply_theme():
         color: #7ce7b6;
         font-size: 13px;
         font-weight: 700;
+        position: relative;
+        z-index: 1;
     }
 
     .section-label {
@@ -119,24 +144,47 @@ def apply_theme():
         font-weight: 700;
         border: 1px solid rgba(255,255,255,.10);
         min-height: 42px;
+        transition: all .18s ease;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(120,190,255,.35);
     }
 
     .stSelectbox > div > div,
     .stTextInput > div > div,
-    .stNumberInput > div > div {
+    .stNumberInput > div > div,
+    .stMultiSelect > div > div {
         border-radius: 12px;
     }
 
     [data-testid="stAlert"] {
         border-radius: 14px;
     }
+
+    [data-testid="stExpander"] {
+        border-radius: 14px;
+        border-color: rgba(255,255,255,.08);
+    }
+
+    [data-testid="stCaptionContainer"] {
+        color: #879bb4;
+    }
+
+    footer {
+        visibility: hidden;
+    }
     </style>
     """, unsafe_allow_html=True)
+
 
 def hero(title, subtitle, live=False):
     pill = '<div class="live-pill">● LIVE MONITORING</div>' if live else ''
     st.markdown(
-        f'<div class="hero-card"><div class="hero-title">{title}</div>'
-        f'<div class="hero-subtitle">{subtitle}</div>{pill}</div>',
+        f'<div class="hero-card">'
+        f'<div class="hero-title">{title}</div>'
+        f'<div class="hero-subtitle">{subtitle}</div>'
+        f'{pill}</div>',
         unsafe_allow_html=True
     )
