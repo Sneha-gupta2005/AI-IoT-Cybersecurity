@@ -1,4 +1,4 @@
-from ui import apply_theme
+from ui import apply_theme, hero
 apply_theme()
 
 import streamlit as st
@@ -10,20 +10,9 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 load_dotenv()
-
-st.set_page_config(
-    page_title="Attack Analysis",
-    page_icon="🚨",
-    layout="wide"
-)
-
-
-# ==========================================
-# DATABASE
-# ==========================================
+st.set_page_config(page_title="Attack Analysis", page_icon="🚨", layout="wide")
 
 def get_connection():
-
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "localhost"),
         port=os.getenv("POSTGRES_PORT", "5432"),
@@ -32,333 +21,113 @@ def get_connection():
         password=os.getenv("POSTGRES_PASSWORD")
     )
 
-
-# ==========================================
-# LOAD LIVE DATA
-# ==========================================
-
 @st.cache_data(ttl=3)
 def load_data():
-
     conn = get_connection()
-
-    query = """
-    SELECT
-        id,
-        device_id,
-        timestamp,
-        ai_anomaly_status,
-        anomaly_score,
-        attack_status,
-        attack_type,
-        severity,
-        network_traffic,
-        packet_rate,
-        latency,
-        cpu_usage,
-        memory_usage,
-        detection_reason
-    FROM cyber_attack_results
-    ORDER BY timestamp DESC
-    LIMIT 5000
-    """
-
-    df = pd.read_sql(query, conn)
-
+    df = pd.read_sql("""
+        SELECT id, device_id, timestamp, ai_anomaly_status, anomaly_score,
+               attack_status, attack_type, severity, network_traffic, packet_rate,
+               latency, cpu_usage, memory_usage, detection_reason
+        FROM cyber_attack_results
+        ORDER BY timestamp DESC
+        LIMIT 5000
+    """, conn)
     conn.close()
-
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     return df
 
+hero("Attack Analysis", "Interactive investigation of attacks, severity, affected devices and AI detection signals.", True)
 
-# ==========================================
-# PAGE HEADER
-# ==========================================
-
-st.title("🚨 Attack Analysis")
-
-st.caption(
-    "Real-time analysis of detected cyber attacks and security events"
-)
-
-st.divider()
-
-
-# ==========================================
-# LOAD DATA
-# ==========================================
+with st.sidebar:
+    st.markdown("### 🔎 Investigation Filters")
+    auto = st.checkbox("🔄 Auto refresh", value=True)
+    devices = ["All devices"] + sorted(pd.Series(["SE-001", "SE-002", "SE-003"]).unique().tolist())
+    selected_device = st.selectbox("Device", devices)
+    severity_options = ["HIGH", "MEDIUM", "LOW"]
+    selected_severity = st.multiselect("Severity", severity_options, default=severity_options)
 
 try:
-
     df = load_data()
-
 except Exception as e:
-
     st.error("Database connection failed.")
     st.code(str(e))
     st.stop()
 
-
 if df.empty:
-
-    st.warning("No attack data available.")
+    st.warning("No security data available.")
     st.stop()
 
+attack_mask = df["attack_status"].astype(str).str.upper().isin(["SUSPICIOUS", "ATTACK", "MALICIOUS"])
+attacks = df[attack_mask].copy()
 
-# ==========================================
-# FILTER ONLY ATTACKS
-# ==========================================
+if selected_device != "All devices":
+    attacks = attacks[attacks["device_id"] == selected_device]
 
-attacks = df[
-    df["attack_status"] == "SUSPICIOUS"
-].copy()
+if selected_severity:
+    attacks = attacks[attacks["severity"].astype(str).str.upper().isin(selected_severity)]
 
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("🚨 Attacks", f"{len(attacks):,}")
+c2.metric("🔴 High", int((attacks["severity"].astype(str).str.upper() == "HIGH").sum()))
+c3.metric("🟠 Medium", int((attacks["severity"].astype(str).str.upper() == "MEDIUM").sum()))
+c4.metric("📱 Affected Devices", attacks["device_id"].nunique())
 
 if attacks.empty:
-
-    st.success("🟢 No suspicious attacks detected.")
-
+    st.success("🟢 No suspicious attacks match the selected filters.")
 else:
+    left, right = st.columns([1.2, 1])
 
-    # ==========================================
-    # TOP METRICS
-    # ==========================================
+    with left:
+        counts = attacks["attack_type"].fillna("Unknown").astype(str).value_counts().reset_index()
+        counts.columns = ["attack_type", "count"]
+        fig = px.bar(counts, x="attack_type", y="count", text_auto=True, template="plotly_dark")
+        fig.update_layout(height=350, margin=dict(l=10, r=10, t=30, b=10),
+                          xaxis_title="", yaxis_title="Events")
+        st.plotly_chart(fig, use_container_width=True)
 
-    total_attacks = len(attacks)
+    with right:
+        sev = attacks["severity"].fillna("Unknown").astype(str).value_counts().reset_index()
+        sev.columns = ["severity", "count"]
+        fig = px.pie(sev, names="severity", values="count", hole=.55, template="plotly_dark")
+        fig.update_layout(height=350, margin=dict(l=10, r=10, t=30, b=10))
+        st.plotly_chart(fig, use_container_width=True)
 
-    high_attacks = (
-        attacks["severity"] == "HIGH"
-    ).sum()
+    timeline = (attacks.sort_values("timestamp").set_index("timestamp")
+                .resample("1min").size().reset_index(name="attacks"))
+    fig = px.area(timeline, x="timestamp", y="attacks", template="plotly_dark")
+    fig.update_layout(height=320, margin=dict(l=10, r=10, t=30, b=10),
+                      xaxis_title="", yaxis_title="Attack events")
+    st.plotly_chart(fig, use_container_width=True)
 
-    medium_attacks = (
-        attacks["severity"] == "MEDIUM"
-    ).sum()
+    left, right = st.columns(2)
 
-    devices_affected = (
-        attacks["device_id"]
-        .nunique()
-    )
+    with left:
+        dev = attacks["device_id"].value_counts().reset_index()
+        dev.columns = ["device_id", "attacks"]
+        fig = px.bar(dev, x="device_id", y="attacks", text_auto=True, template="plotly_dark")
+        fig.update_layout(height=300, margin=dict(l=10, r=10, t=30, b=10), xaxis_title="")
+        st.plotly_chart(fig, use_container_width=True)
 
+    with right:
+        reason = attacks["detection_reason"].fillna("Unknown").astype(str).value_counts().head(8).reset_index()
+        reason.columns = ["reason", "count"]
+        fig = px.bar(reason, x="count", y="reason", orientation="h", text_auto=True,
+                     template="plotly_dark")
+        fig.update_layout(height=300, margin=dict(l=10, r=10, t=30, b=10), xaxis_title="")
+        st.plotly_chart(fig, use_container_width=True)
 
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric(
-        "Total Attacks",
-        total_attacks
-    )
-
-    col2.metric(
-        "High Severity",
-        high_attacks
-    )
-
-    col3.metric(
-        "Medium Severity",
-        medium_attacks
-    )
-
-    col4.metric(
-        "Affected Devices",
-        devices_affected
-    )
-
-
-    st.divider()
-
-
-    # ==========================================
-    # ATTACK TYPE
-    # ==========================================
-
-    st.subheader("Attack Type Distribution")
-
-    attack_type_counts = (
-        attacks["attack_type"]
-        .value_counts()
-        .reset_index()
-    )
-
-    attack_type_counts.columns = [
-        "attack_type",
-        "count"
-    ]
-
-
-    fig_attack = px.bar(
-        attack_type_counts,
-        x="attack_type",
-        y="count",
-        title="Detected Attack Types",
-        labels={
-            "attack_type": "Attack Type",
-            "count": "Number of Events"
-        }
-    )
-
-    st.plotly_chart(
-        fig_attack,
-        use_container_width=True
-    )
-
-
-    # ==========================================
-    # SEVERITY
-    # ==========================================
-
-    st.subheader("Severity Distribution")
-
-    severity_counts = (
-        attacks["severity"]
-        .value_counts()
-        .reset_index()
-    )
-
-    severity_counts.columns = [
-        "severity",
-        "count"
-    ]
-
-
-    fig_severity = px.pie(
-        severity_counts,
-        names="severity",
-        values="count",
-        title="Attack Severity"
-    )
-
-    st.plotly_chart(
-        fig_severity,
-        use_container_width=True
-    )
-
-
-    # ==========================================
-    # ATTACK TIMELINE
-    # ==========================================
-
-    st.subheader("Attack Timeline")
-
-    timeline = (
-        attacks
-        .set_index("timestamp")
-        .resample("1min")
-        .size()
-        .reset_index(name="attacks")
-    )
-
-
-    fig_timeline = px.line(
-        timeline,
-        x="timestamp",
-        y="attacks",
-        title="Attacks Over Time",
-        labels={
-            "timestamp": "Time",
-            "attacks": "Attack Events"
-        }
-    )
-
-    st.plotly_chart(
-        fig_timeline,
-        use_container_width=True
-    )
-
-
-    # ==========================================
-    # DEVICE-WISE ATTACKS
-    # ==========================================
-
-    st.subheader("Device-wise Attack Distribution")
-
-    device_counts = (
-        attacks["device_id"]
-        .value_counts()
-        .reset_index()
-    )
-
-    device_counts.columns = [
-        "device_id",
-        "attacks"
-    ]
-
-
-    fig_device = px.bar(
-        device_counts,
-        x="device_id",
-        y="attacks",
-        title="Attacks by Device"
-    )
-
-    st.plotly_chart(
-        fig_device,
-        use_container_width=True
-    )
-
-
-    # ==========================================
-    # DETECTION REASONS
-    # ==========================================
-
-    st.subheader("Detection Reasons")
-
-    reason_counts = (
-        attacks["detection_reason"]
-        .value_counts()
-        .reset_index()
-    )
-
-    reason_counts.columns = [
-        "detection_reason",
-        "count"
-    ]
-
-
+    st.subheader("🧾 Attack Event Explorer")
     st.dataframe(
-        reason_counts,
+        attacks[["timestamp", "device_id", "attack_type", "severity", "anomaly_score",
+                 "network_traffic", "packet_rate", "latency", "detection_reason"]]
+        .sort_values("timestamp", ascending=False).head(200),
         use_container_width=True,
         hide_index=True
     )
 
+st.caption("🔄 Live data refreshes every 5 seconds when Auto refresh is enabled.")
 
-    # ==========================================
-    # DETAILED ATTACK TABLE
-    # ==========================================
-
-    st.subheader("Detailed Attack Events")
-
-    st.dataframe(
-        attacks[
-            [
-                "timestamp",
-                "device_id",
-                "attack_type",
-                "severity",
-                "anomaly_score",
-                "network_traffic",
-                "packet_rate",
-                "latency",
-                "detection_reason"
-            ]
-        ].sort_values(
-            "timestamp",
-            ascending=False
-        ),
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-# ==========================================
-# AUTO REFRESH
-# ==========================================
-
-st.divider()
-
-st.caption(
-    "🔄 Live data refreshes automatically every 5 seconds."
-)
-
-time.sleep(5)
-
-st.cache_data.clear()
-
-st.rerun()
+if auto:
+    time.sleep(5)
+    st.cache_data.clear()
+    st.rerun()
