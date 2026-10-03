@@ -1,5 +1,4 @@
 from ui import apply_theme, hero
-apply_theme()
 
 import streamlit as st
 import pandas as pd
@@ -11,6 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 st.set_page_config(page_title="Device Analysis", page_icon="📱", layout="wide")
+
+apply_theme()
 
 def get_connection():
     return psycopg2.connect(
