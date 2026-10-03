@@ -1,3 +1,6 @@
+from ui import apply_theme
+apply_theme()
+
 import streamlit as st
 import pandas as pd
 import psycopg2
