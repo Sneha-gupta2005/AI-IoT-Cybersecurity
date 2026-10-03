@@ -1,0 +1,70 @@
+
+AI-BASED IOT CYBERSECURITY SYSTEM
+ML EVALUATION REPORT
+===============================================
+
+Dataset
+-------
+TON-IoT Network Dataset
+
+Dataset Shape:
+(190474, 74)
+
+Binary Cyber Attack Detection
+-----------------------------
+
+Accuracy           : 0.9986
+Precision          : 0.9993
+Recall             : 0.9989
+F1 Score           : 0.9991
+ROC-AUC            : 1.0000
+PR-AUC             : 1.0000
+
+False Positive Rate: 0.0025
+False Negative Rate: 0.0011
+
+Confusion Matrix:
+[[ 8387    21]
+ [   32 29655]]
+
+
+Multi-Class Attack Classification
+----------------------------------
+
+Accuracy           : 0.9898
+Precision          : 0.9899
+Recall             : 0.9898
+F1 Score           : 0.9898
+
+Classification Report:
+
+              precision    recall  f1-score   support
+
+    backdoor       1.00      1.00      1.00      3742
+        ddos       0.99      0.98      0.99      3999
+         dos       0.99      0.99      0.99      3799
+   injection       0.98      0.97      0.98      3993
+        mitm       0.75      0.79      0.77       208
+      normal       1.00      1.00      1.00      8408
+    password       0.99      0.99      0.99      3972
+  ransomware       1.00      1.00      1.00      2947
+    scanning       0.99      0.99      0.99      4000
+         xss       0.97      0.98      0.97      3027
+
+    accuracy                           0.99     38095
+   macro avg       0.97      0.97      0.97     38095
+weighted avg       0.99      0.99      0.99     38095
+
+
+Confusion Matrix:
+
+[[3741    0    1    0    0    0    0    0    0    0]
+ [   0 3937    0   20    0    8    1    1    0   32]
+ [   0    1 3744    4   25    1    5    0   19    0]
+ [   0   15    5 3883    4    2    1    0   12   71]
+ [   0    2    9    6  165    7   13    0    4    2]
+ [   0    8    3    0    6 8389    0    0    1    1]
+ [   0    2    6    1   17    1 3941    0    2    2]
+ [   0    0    0    0    0    0    0 2947    0    0]
+ [   0    0   13    2    1    2    2    2 3978    0]
+ [   0    4    0   40    1    2    0    0    0 2980]]

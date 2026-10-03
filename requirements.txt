@@ -1,0 +1,16 @@
+pandas
+numpy
+scikit-learn
+xgboost
+joblib
+matplotlib
+seaborn
+streamlit
+plotly
+fastapi
+uvicorn
+paho-mqtt
+python-dotenv
+psycopg2-binary
+pytest
+requests
