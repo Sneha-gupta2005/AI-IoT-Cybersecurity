@@ -1,10 +1,11 @@
 from ui import apply_theme, hero
-apply_theme()
 
 import streamlit as st
 import requests
 
 st.set_page_config(page_title="AI Prediction", page_icon="🔮", layout="wide")
+
+apply_theme()
 
 API_URL = "http://127.0.0.1:8000/predict"
 
