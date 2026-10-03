@@ -1,418 +1,104 @@
-from ui import apply_theme
+from ui import apply_theme, hero
 apply_theme()
 
 import streamlit as st
 import pandas as pd
 import os
+import plotly.express as px
 
+st.set_page_config(page_title="Dataset Explorer", page_icon="📊", layout="wide")
 
-# =========================================================
-# PAGE CONFIG
-# =========================================================
+hero("Dataset Explorer", "Interactive exploration of the processed TON-IoT network cybersecurity dataset.", False)
 
-st.set_page_config(
-    page_title="Dataset Explorer",
-    page_icon="📊",
-    layout="wide"
-)
-
-st.title("📊 Dataset Explorer")
-
-st.caption(
-    "Explore the processed TON-IoT network cybersecurity dataset"
-)
-
-st.divider()
-
-
-# =========================================================
-# DATASET PATH
-# =========================================================
-
-DATASET_PATH = (
-    "datasets/processed/ton_iot_network_processed.csv"
-)
-
-
-# =========================================================
-# CHECK DATASET
-# =========================================================
+DATASET_PATH = "datasets/processed/ton_iot_network_processed.csv"
 
 if not os.path.exists(DATASET_PATH):
-
-    st.error(
-        "Processed TON-IoT dataset was not found."
-    )
-
+    st.error("Processed TON-IoT dataset was not found.")
     st.code(DATASET_PATH)
-
     st.stop()
-
-
-# =========================================================
-# LOAD DATA
-# =========================================================
 
 @st.cache_data
 def load_dataset():
-
-    df = pd.read_csv(DATASET_PATH)
-
-    return df
-
+    return pd.read_csv(DATASET_PATH)
 
 try:
-
     df = load_dataset()
-
 except Exception as e:
-
     st.error("Dataset loading failed.")
-
     st.code(str(e))
-
     st.stop()
 
+with st.sidebar:
+    st.markdown("### 🎛️ Explorer Controls")
+    sample_size = st.slider("Sample rows", 5, 100, 20, 5)
+    search = st.text_input("🔎 Search feature", placeholder="bytes, port, proto...")
+    label_filter = st.selectbox("Binary Label", ["All", "Normal", "Attack"])
+    attack_options = ["All"] + sorted(df["attack_type"].dropna().astype(str).unique().tolist()) if "attack_type" in df.columns else ["All"]
+    attack_filter = st.selectbox("Attack Type", attack_options)
 
-# =========================================================
-# DATASET INFORMATION
-# =========================================================
+c1,c2,c3,c4 = st.columns(4)
+c1.metric("📄 Records", f"{len(df):,}")
+c2.metric("🧩 Columns", df.shape[1])
+c3.metric("🤖 ML Features", max(df.shape[1]-2, 0))
+c4.metric("⚠️ Missing Values", f"{int(df.isnull().sum().sum()):,}")
 
-st.subheader("📌 Dataset Information")
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric(
-    "Total Records",
-    f"{len(df):,}"
-)
-
-col2.metric(
-    "Total Columns",
-    df.shape[1]
-)
-
-col3.metric(
-    "ML Features",
-    df.shape[1] - 2
-)
-
-col4.metric(
-    "Missing Values",
-    int(df.isnull().sum().sum())
-)
-
-st.divider()
-
-
-# =========================================================
-# TARGET DISTRIBUTION
-# =========================================================
-
-st.subheader("🎯 Binary Attack Label")
-
+st.subheader("🎯 Target Distribution")
 if "label" in df.columns:
+    labels = df["label"].value_counts().sort_index().reset_index()
+    labels.columns = ["label","count"]
+    labels["name"] = labels["label"].map({0:"Normal",1:"Attack"}).fillna(labels["label"].astype(str))
+    left,right = st.columns(2)
+    with left:
+        fig = px.pie(labels, names="name", values="count", hole=.55, template="plotly_dark")
+        fig.update_layout(height=330, margin=dict(l=10,r=10,t=30,b=10))
+        st.plotly_chart(fig, use_container_width=True)
+    with right:
+        fig = px.bar(labels, x="name", y="count", text_auto=True, template="plotly_dark")
+        fig.update_layout(height=330, margin=dict(l=10,r=10,t=30,b=10), xaxis_title="")
+        st.plotly_chart(fig, use_container_width=True)
 
-    label_counts = (
-        df["label"]
-        .value_counts()
-        .sort_index()
-        .reset_index()
-    )
-
-    label_counts.columns = [
-        "label",
-        "count"
-    ]
-
-    label_counts["label_name"] = (
-        label_counts["label"]
-        .map({
-            0: "Normal",
-            1: "Attack"
-        })
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.dataframe(
-            label_counts[
-                [
-                    "label_name",
-                    "count"
-                ]
-            ],
-            use_container_width=True,
-            hide_index=True
-        )
-
-    with col2:
-
-        import plotly.express as px
-
-        fig_label = px.pie(
-            label_counts,
-            names="label_name",
-            values="count",
-            title="Normal vs Attack"
-        )
-
-        st.plotly_chart(
-            fig_label,
-            use_container_width=True
-        )
-
-
-# =========================================================
-# ATTACK TYPE DISTRIBUTION
-# =========================================================
-
-st.divider()
-
-st.subheader("🚨 Attack Type Distribution")
-
+st.subheader("🚨 Attack Classes")
 if "attack_type" in df.columns:
-
-    attack_counts = (
-        df["attack_type"]
-        .value_counts()
-        .reset_index()
-    )
-
-    attack_counts.columns = [
-        "attack_type",
-        "count"
-    ]
-
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-
-        st.dataframe(
-            attack_counts,
-            use_container_width=True,
-            hide_index=True
-        )
-
-    with col2:
-
-        fig_attack = px.bar(
-            attack_counts,
-            x="attack_type",
-            y="count",
-            text="count",
-            title="TON-IoT Attack Classes"
-        )
-
-        fig_attack.update_layout(
-            xaxis_title="Attack Type",
-            yaxis_title="Records"
-        )
-
-        st.plotly_chart(
-            fig_attack,
-            use_container_width=True
-        )
-
-
-# =========================================================
-# FEATURE INFORMATION
-# =========================================================
-
-st.divider()
+    attacks = df["attack_type"].astype(str).value_counts().reset_index()
+    attacks.columns = ["attack_type","count"]
+    fig = px.bar(attacks, x="attack_type", y="count", text_auto=True,
+                 template="plotly_dark", hover_data=["count"])
+    fig.update_layout(height=360, margin=dict(l=10,r=10,t=30,b=10), xaxis_title="")
+    st.plotly_chart(fig, use_container_width=True)
 
 st.subheader("🧩 Feature Information")
+feature_columns = [c for c in df.columns if c not in ["label","attack_type"]]
+feature_info = pd.DataFrame({
+    "Feature": feature_columns,
+    "Data Type": [str(df[c].dtype) for c in feature_columns],
+    "Missing Values": [int(df[c].isnull().sum()) for c in feature_columns],
+    "Unique Values": [int(df[c].nunique()) for c in feature_columns]
+})
+if search:
+    feature_info = feature_info[feature_info["Feature"].str.contains(search, case=False, na=False)]
+st.dataframe(feature_info, use_container_width=True, hide_index=True)
 
-feature_columns = [
-    column
-    for column in df.columns
-    if column not in [
-        "label",
-        "attack_type"
-    ]
-]
+st.subheader("🎛️ Filtered Dataset")
+filtered = df.copy()
+if label_filter == "Normal":
+    filtered = filtered[filtered["label"] == 0]
+elif label_filter == "Attack":
+    filtered = filtered[filtered["label"] == 1]
+if attack_filter != "All":
+    filtered = filtered[filtered["attack_type"].astype(str) == attack_filter]
 
-feature_info = pd.DataFrame(
-    {
-        "Feature": feature_columns,
+a,b = st.columns(2)
+a.metric("Filtered Records", f"{len(filtered):,}")
+b.metric("Filter Coverage", f"{(len(filtered)/len(df)*100 if len(df) else 0):.1f}%")
 
-        "Data Type": [
-            str(df[column].dtype)
-            for column in feature_columns
-        ],
-
-        "Missing Values": [
-            int(df[column].isnull().sum())
-            for column in feature_columns
-        ],
-
-        "Unique Values": [
-            int(df[column].nunique())
-            for column in feature_columns
-        ]
-    }
-)
-
-st.dataframe(
-    feature_info,
-    use_container_width=True,
-    hide_index=True
-)
-
-
-# =========================================================
-# FEATURE SEARCH
-# =========================================================
-
-st.subheader("🔎 Search Features")
-
-search_text = st.text_input(
-    "Search for a feature name",
-    placeholder="Example: bytes, port, proto..."
-)
-
-if search_text:
-
-    filtered_features = feature_info[
-        feature_info["Feature"]
-        .str.contains(
-            search_text,
-            case=False,
-            na=False
-        )
-    ]
-
-    st.dataframe(
-        filtered_features,
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-# =========================================================
-# DATA SAMPLE
-# =========================================================
-
-st.divider()
+st.dataframe(filtered.head(100), use_container_width=True, hide_index=True)
 
 st.subheader("📄 Dataset Sample")
+st.dataframe(df.head(sample_size), use_container_width=True, hide_index=True)
 
-sample_size = st.slider(
-    "Number of rows to display",
-    min_value=5,
-    max_value=100,
-    value=20,
-    step=5
-)
-
-st.dataframe(
-    df.head(sample_size),
-    use_container_width=True,
-    hide_index=True
-)
-
-
-# =========================================================
-# FILTER DATA
-# =========================================================
+csv_data = filtered.to_csv(index=False).encode("utf-8")
+st.download_button("⬇️ Download Filtered Dataset", csv_data,
+                   "ton_iot_filtered.csv", "text/csv", use_container_width=True)
 
 st.divider()
-
-st.subheader("🎛️ Dataset Filters")
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    if "label" in df.columns:
-
-        selected_label = st.selectbox(
-            "Filter by Label",
-            ["All", "Normal", "Attack"]
-        )
-
-    else:
-
-        selected_label = "All"
-
-
-with col2:
-
-    if "attack_type" in df.columns:
-
-        attack_options = [
-            "All"
-        ] + sorted(
-            df["attack_type"]
-            .dropna()
-            .unique()
-            .tolist()
-        )
-
-        selected_attack = st.selectbox(
-            "Filter by Attack Type",
-            attack_options
-        )
-
-    else:
-
-        selected_attack = "All"
-
-
-filtered_df = df.copy()
-
-
-# Label filter
-
-if selected_label == "Normal":
-
-    filtered_df = filtered_df[
-        filtered_df["label"] == 0
-    ]
-
-elif selected_label == "Attack":
-
-    filtered_df = filtered_df[
-        filtered_df["label"] == 1
-    ]
-
-
-# Attack type filter
-
-if selected_attack != "All":
-
-    filtered_df = filtered_df[
-        filtered_df["attack_type"]
-        == selected_attack
-    ]
-
-
-st.write(
-    f"Filtered records: **{len(filtered_df):,}**"
-)
-
-st.dataframe(
-    filtered_df.head(100),
-    use_container_width=True,
-    hide_index=True
-)
-
-
-# =========================================================
-# DOWNLOAD FILTERED DATA
-# =========================================================
-
-st.divider()
-
-csv_data = filtered_df.to_csv(
-    index=False
-).encode("utf-8")
-
-st.download_button(
-    label="⬇️ Download Filtered Dataset",
-    data=csv_data,
-    file_name="ton_iot_filtered.csv",
-    mime="text/csv"
-)
+st.info("📌 Dataset: processed TON-IoT network traffic • Use the filters and feature search to inspect the data before model training/evaluation.")
