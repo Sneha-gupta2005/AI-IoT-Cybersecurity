@@ -18,191 +18,101 @@ The system has two complementary pipelines:
 
 
 
-1\. \*\*Real-time IoT Monitoring Pipeline\*\*
+1. **Real-time IoT Monitoring Pipeline**
 
-&#x20;  - Virtual IoT devices continuously generate telemetry.
+   - Virtual IoT devices continuously generate telemetry.
+   - Telemetry is transmitted through MQTT using HiveMQ Cloud.
+   - An AI anomaly detector analyzes incoming telemetry.
+   - Rule-based cybersecurity detection identifies suspicious network behavior.
+   - Results are stored in PostgreSQL.
+   - Streamlit and Grafana display the results in real time.
 
-&#x20;  - Telemetry is transmitted through MQTT using HiveMQ Cloud.
+2. **TON-IoT Machine Learning Pipeline**
 
-&#x20;  - An AI anomaly detector analyzes incoming telemetry.
-
-&#x20;  - Rule-based cybersecurity detection identifies suspicious network behavior.
-
-&#x20;  - Results are stored in PostgreSQL.
-
-&#x20;  - Streamlit and Grafana display the results in real time.
-
-
-
-2\. \*\*TON-IoT Machine Learning Pipeline\*\*
-
-&#x20;  - The TON-IoT benchmark dataset is used for model training and evaluation.
-
-&#x20;  - XGBoost models are used for binary attack detection and multiclass attack-type classification.
-
-&#x20;  - FastAPI provides an inference API.
-
-&#x20;  - Streamlit provides an interactive network-flow prediction interface.
-
-
-
-\## System Architecture
-
-
+   - The TON-IoT benchmark dataset is used for model training and evaluation.
+   - XGBoost models are used for binary attack detection and multiclass attack-type classification.
+   - FastAPI provides an inference API.
+   - Streamlit provides an interactive network-flow prediction interface.
+## System Architecture
 
 ```text
-
-&#x20;                   AI-IoT CYBERSECURITY SYSTEM
-
-&#x20;                             |
-
-&#x20;            +----------------+----------------+
-
-&#x20;            |                                 |
-
-&#x20;     TON-IoT Benchmark                 Virtual IoT Devices
-
-&#x20;         Dataset                              |
-
-&#x20;            |                                MQTT
-
-&#x20;     Preprocessing                           |
-
-&#x20;            |                          HiveMQ Cloud
-
-&#x20;      XGBoost Models                          |
-
-&#x20;            |                         AI Anomaly Detector
-
-&#x20;         FastAPI                              |
-
-&#x20;            |                    Cyber Attack Rule Engine
-
-&#x20;      Prediction UI                           |
-
-&#x20;            |                                 |
-
-&#x20;            +----------------+----------------+
-
-&#x20;                             |
-
-&#x20;                        PostgreSQL
-
-&#x20;                             |
-
-&#x20;                   +---------+---------+
-
-&#x20;                   |                   |
-
-&#x20;               Streamlit            Grafana
-
-&#x20;               Dashboard           Dashboard
-
+             AI-IoT CYBERSECURITY SYSTEM
+                         |
+          +--------------+--------------+
+          |                             |
+   TON-IoT Benchmark              Virtual IoT Devices
+       Dataset                           |
+          |                              MQTT
+   Preprocessing                          |
+          |                         HiveMQ Cloud
+    XGBoost Models                        |
+          |                       AI Anomaly Detector
+       FastAPI                             |
+          |                      Cyber Attack Rule Engine
+    Prediction UI                          |
+          |                                |
+          +--------------+-----------------+
+                         |
+                    PostgreSQL
+                         |
+              +----------+----------+
+              |                     |
+          Streamlit              Grafana
+          Dashboard             Dashboard
 ```
 
-
-
-\## Real-Time IoT Pipeline
-
-
+## Real-Time IoT Pipeline
 
 ```text
-
 Virtual Devices
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 MQTT Publisher
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 HiveMQ Cloud
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 AI Detector
-
-&#x20;     |
-
-&#x20;     +----> AI Anomaly Detection
-
-&#x20;     |
-
-&#x20;     +----> Cyber Attack Detection
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     +----> AI Anomaly Detection
+     |
+     +----> Cyber Attack Detection
+     |
+     v
 PostgreSQL
-
-&#x20;     |
-
-&#x20;     +----> Streamlit
-
-&#x20;     |
-
-&#x20;     +----> Grafana
-
+     |
+     +----> Streamlit
+     |
+     +----> Grafana
 ```
 
+The real-time demonstration uses **software-based virtual IoT devices**. It does not require physical sensor hardware.
 
-
-The real-time demonstration uses \*\*software-based virtual IoT devices\*\*. It does not require physical sensor hardware.
-
-
-
-\## Machine Learning Pipeline
-
-
+## Machine Learning Pipeline
 
 ```text
-
 TON-IoT Dataset
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 Data Preprocessing
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 Feature Engineering
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 XGBoost Training
-
-&#x20;     |
-
-&#x20;     +----> Binary Attack Detection
-
-&#x20;     |
-
-&#x20;     +----> Multiclass Attack Classification
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     +----> Binary Attack Detection
+     |
+     +----> Multiclass Attack Classification
+     |
+     v
 FastAPI
-
-&#x20;     |
-
-&#x20;     v
-
+     |
+     v
 Streamlit Prediction Interface
+```
 
 ```
 
